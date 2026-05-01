@@ -6,6 +6,7 @@ import urllib.request
 NOTION_TOKEN = os.environ["NOTION_TOKEN"]
 NOTION_DATABASE_ID = os.environ["NOTION_DATABASE_ID"]
 DISCORD_WEBHOOK_URL = os.environ["DISCORD_WEBHOOK_URL"]
+NTFY_TOPIC = "yasu-tasks-20260501"
 
 def query_notion_tasks():
     url = f"https://api.notion.com/v1/databases/{NOTION_DATABASE_ID}/query"
@@ -27,8 +28,7 @@ def query_notion_tasks():
         headers={
             "Authorization": f"Bearer {NOTION_TOKEN}",
             "Content-Type": "application/json",
-            "Notion-Version": "2022-06-28",
-            "User-Agent": "notion-discord-reminder/1.0"
+            "Notion-Version": "2022-06-28"
         }, method="POST"
     )
     with urllib.request.urlopen(req) as res:
@@ -60,6 +60,35 @@ def format_tasks(results):
             low.append(label)
     return high, mid, low
 
+def send_ntfy(high, mid, low):
+    today = datetime.date.today().strftime("%Y/%m/%d")
+    message = f"""今日のタスク一覧 ({today})
+
+🔴 高優先度
+{chr(10).join(high) if high else "（なし）"}
+
+🟡 中優先度
+{chr(10).join(mid) if mid else "（なし）"}
+
+🟢 低優先度
+{chr(10).join(low) if low else "（なし）"}
+
+今日も頑張りましょう！💪"""
+
+    req = urllib.request.Request(
+        f"https://ntfy.sh/{NTFY_TOPIC}",
+        data=message.encode("utf-8"),
+        headers={
+            "Title": f"🌅 今日のタスク ({today})",
+            "Priority": "high",
+            "Tags": "spiral_calendar_pad",
+            "Content-Type": "text/plain; charset=utf-8"
+        },
+        method="POST"
+    )
+    with urllib.request.urlopen(req) as res:
+        print(f"ntfy送信成功: {res.status}")
+
 def send_discord(high, mid, low):
     today = datetime.date.today().strftime("%Y/%m/%d")
     message = f"""🌅 おはようございます！今日のタスク一覧です（{today}）
@@ -90,6 +119,8 @@ if __name__ == "__main__":
     result = query_notion_tasks()
     print(f"取得件数: {len(result['results'])}件")
     high, mid, low = format_tasks(result["results"])
+    print("ntfyに送信中...")
+    send_ntfy(high, mid, low)
     print("Discordに送信中...")
     send_discord(high, mid, low)
     print("完了！")
