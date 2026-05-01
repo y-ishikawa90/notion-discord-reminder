@@ -1,0 +1,33 @@
+name: Googleカレンダー → Notion 同期
+
+on:
+  schedule:
+    # 毎時0分に実行（JSTでも毎時0分）
+    - cron: '0 * * * *'
+  workflow_dispatch:  # 手動実行ボタン
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: リポジトリをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: Python セットアップ
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 必要ライブラリをインストール
+        run: |
+          pip install --upgrade pip
+          pip install google-auth google-api-python-client
+
+      - name: 同期スクリプトを実行
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          NOTION_DASHBOARD_PAGE_ID: ${{ secrets.NOTION_DASHBOARD_PAGE_ID }}
+        run: python gcal_to_notion.py
