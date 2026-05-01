@@ -40,7 +40,7 @@ def format_tasks(results):
     for page in results:
         props = page["properties"]
         title_list = props.get("タスク名", {}).get("title", [])
-        name = title_list[0]["plain_text"] if title_list else "（名前なし）"
+        name = title_list[0]["plain_text"] if title_list else "(名前なし)"
         category_list = props.get("カテゴリ", {}).get("multi_select", [])
         category = category_list[0]["name"] if category_list else ""
         importance_obj = props.get("重要度", {}).get("select")
@@ -50,8 +50,8 @@ def format_tasks(results):
         if due_date_obj and due_date_obj.get("start"):
             due = datetime.date.fromisoformat(due_date_obj["start"])
             if due < today:
-                overdue = " ⚠️"
-        label = f"・{name}（{category}）{overdue}" if category else f"・{name}{overdue}"
+                overdue = " [期限切れ]"
+        label = f"・{name}({category}){overdue}" if category else f"・{name}{overdue}"
         if "高" in importance:
             high.append(label)
         elif "中" in importance:
@@ -62,26 +62,32 @@ def format_tasks(results):
 
 def send_ntfy(high, mid, low):
     today = datetime.date.today().strftime("%Y/%m/%d")
-    message = f"""今日のタスク一覧 ({today})
+    title = f"Today Tasks {today}"
+    message = (
+        f"[高] 高優先度
+"
+        f"{chr(10).join(high) if high else '(なし)'}
 
-🔴 高優先度
-{chr(10).join(high) if high else "（なし）"}
+"
+        f"[中] 中優先度
+"
+        f"{chr(10).join(mid) if mid else '(なし)'}
 
-🟡 中優先度
-{chr(10).join(mid) if mid else "（なし）"}
+"
+        f"[低] 低優先度
+"
+        f"{chr(10).join(low) if low else '(なし)'}
 
-🟢 低優先度
-{chr(10).join(low) if low else "（なし）"}
-
-今日も頑張りましょう！💪"""
-
+"
+        f"今日も頓張りましょう！"
+    )
     req = urllib.request.Request(
         f"https://ntfy.sh/{NTFY_TOPIC}",
         data=message.encode("utf-8"),
         headers={
-            "Title": f"🌅 今日のタスク ({today})",
+            "Title": title,
             "Priority": "high",
-            "Tags": "spiral_calendar_pad",
+            "Tags": "calendar",
             "Content-Type": "text/plain; charset=utf-8"
         },
         method="POST"
@@ -91,18 +97,27 @@ def send_ntfy(high, mid, low):
 
 def send_discord(high, mid, low):
     today = datetime.date.today().strftime("%Y/%m/%d")
-    message = f"""🌅 おはようございます！今日のタスク一覧です（{today}）
+    message = (
+        f"おはようございます！今日のタスク一覧です（{today}）
 
-🔴 **高優先度**
-{chr(10).join(high) if high else "（なし）"}
+"
+        f"U0001f534 **高優先度**
+"
+        f"{chr(10).join(high) if high else '（なし）'}
 
-🟡 **中優先度**
-{chr(10).join(mid) if mid else "（なし）"}
+"
+        f"U0001f7e1 **中優先度**
+"
+        f"{chr(10).join(mid) if mid else '（なし）'}
 
-🟢 **習慣・低優先度**
-{chr(10).join(low) if low else "（なし）"}
+"
+        f"U0001f7e2 **習慣・低優先度**
+"
+        f"{chr(10).join(low) if low else '（なし）'}
 
-今日も一日頑張りましょう！💪"""
+"
+        f"今日も一日頓張りましょう！"
+    )
     data = json.dumps({"content": message}).encode("utf-8")
     req = urllib.request.Request(
         DISCORD_WEBHOOK_URL, data=data,
