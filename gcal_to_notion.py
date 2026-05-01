@@ -14,6 +14,8 @@ Googleカレンダー → Notion 同期スクリプト
   - NOTION_TOKEN
   - NOTION_DATABASE_ID                 (既存のタスクDB)
   - GOOGLE_SERVICE_ACCOUNT_JSON        (Service AccountのJSONを文字列で)
+  - GOOGLE_CALENDAR_IDS                (任意。カンマ区切りで対象カレンダーIDを指定。
+                                         未指定の場合はSAのcalendarListから取得)
   - NOTION_DASHBOARD_PAGE_ID           (任意。週次スケジュールを差し込むページ)
 
 Notion DB に必要なプロパティ (事前に追加が必要):
@@ -41,6 +43,7 @@ NOTION_TOKEN = os.environ["NOTION_TOKEN"]
 NOTION_DATABASE_ID = os.environ["NOTION_DATABASE_ID"]
 GOOGLE_SERVICE_ACCOUNT_JSON = os.environ["GOOGLE_SERVICE_ACCOUNT_JSON"]
 NOTION_DASHBOARD_PAGE_ID = os.environ.get("NOTION_DASHBOARD_PAGE_ID", "").strip()
+GOOGLE_CALENDAR_IDS = os.environ.get("GOOGLE_CALENDAR_IDS", "").strip()
 WEEKLY_SECTION_HEADING = "📅 今週の予定（自動更新）"
 
 NOTION_API_BASE = "https://api.notion.com/v1"
@@ -103,7 +106,22 @@ def fetch_week_events(service):
     time_min = start.isoformat()
     time_max = end.isoformat()
 
-    calendars = service.calendarList().list().execute().get("items", [])
+    calendars = []
+    if GOOGLE_CALENDAR_IDS:
+        # 明示指定されたIDを使う（推奨ルート）
+        for cal_id in [c.strip() for c in GOOGLE_CALENDAR_IDS.split(",") if c.strip()]:
+            try:
+                meta = service.calendars().get(calendarId=cal_id).execute()
+                calendars.append({
+                    "id": cal_id,
+                    "summary": meta.get("summary", cal_id),
+                })
+            except Exception as e:
+                print(f"  [警告] カレンダー情報取得失敗（IDだけで続行）: {cal_id} ({e})")
+                calendars.append({"id": cal_id, "summary": cal_id})
+    else:
+        # フォールバック: SAのcalendarListから取得（共有カレンダーは載らない場合あり）
+        calendars = service.calendarList().list().execute().get("items", [])
     print(f"  対象カレンダー数: {len(calendars)}")
 
     all_events = []
