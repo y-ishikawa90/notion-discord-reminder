@@ -27,7 +27,8 @@ def query_notion_tasks():
         headers={
             "Authorization": f"Bearer {NOTION_TOKEN}",
             "Content-Type": "application/json",
-            "Notion-Version": "2022-06-28"
+            "Notion-Version": "2022-06-28",
+            "User-Agent": "notion-discord-reminder/1.0"
         }, method="POST"
     )
     with urllib.request.urlopen(req) as res:
@@ -76,7 +77,10 @@ def send_discord(high, mid, low):
     data = json.dumps({"content": message}).encode("utf-8")
     req = urllib.request.Request(
         DISCORD_WEBHOOK_URL, data=data,
-        headers={"Content-Type": "application/json"}, method="POST"
+        headers={
+            "Content-Type": "application/json",
+            "User-Agent": "DiscordBot (notion-discord-reminder, 1.0)"
+        }, method="POST"
     )
     with urllib.request.urlopen(req) as res:
         print(f"Discord送信成功: {res.status}")
