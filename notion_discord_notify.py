@@ -63,24 +63,14 @@ def format_tasks(results):
 def send_ntfy(high, mid, low):
     today = datetime.date.today().strftime("%Y/%m/%d")
     title = f"Today Tasks {today}"
-    message = (
-        f"[高] 高優先度
-"
-        f"{chr(10).join(high) if high else '(なし)'}
-
-"
-        f"[中] 中優先度
-"
-        f"{chr(10).join(mid) if mid else '(なし)'}
-
-"
-        f"[低] 低優先度
-"
-        f"{chr(10).join(low) if low else '(なし)'}
-
-"
-        f"今日も頓張りましょう！"
-    )
+    nl = chr(10)
+    high_text = nl.join(high) if high else "(なし)"
+    mid_text = nl.join(mid) if mid else "(なし)"
+    low_text = nl.join(low) if low else "(なし)"
+    message = "[高] 高優先度" + nl + high_text + nl + nl
+    message += "[中] 中優先度" + nl + mid_text + nl + nl
+    message += "[低] 低優先度" + nl + low_text + nl + nl
+    message += "今日も頑張りましょう！"
     req = urllib.request.Request(
         f"https://ntfy.sh/{NTFY_TOPIC}",
         data=message.encode("utf-8"),
@@ -97,27 +87,15 @@ def send_ntfy(high, mid, low):
 
 def send_discord(high, mid, low):
     today = datetime.date.today().strftime("%Y/%m/%d")
-    message = (
-        f"おはようございます！今日のタスク一覧です（{today}）
-
-"
-        f"U0001f534 **高優先度**
-"
-        f"{chr(10).join(high) if high else '（なし）'}
-
-"
-        f"U0001f7e1 **中優先度**
-"
-        f"{chr(10).join(mid) if mid else '（なし）'}
-
-"
-        f"U0001f7e2 **習慣・低優先度**
-"
-        f"{chr(10).join(low) if low else '（なし）'}
-
-"
-        f"今日も一日頓張りましょう！"
-    )
+    nl = chr(10)
+    high_text = nl.join(high) if high else "（なし）"
+    mid_text = nl.join(mid) if mid else "（なし）"
+    low_text = nl.join(low) if low else "（なし）"
+    message = f"おはようございます！今日のタスク一覧です（{today}）" + nl + nl
+    message += "🔴 **高優先度**" + nl + high_text + nl + nl
+    message += "🟡 **中優先度**" + nl + mid_text + nl + nl
+    message += "🟢 **習慣・低優先度**" + nl + low_text + nl + nl
+    message += "今日も一日頑張りましょう！"
     data = json.dumps({"content": message}).encode("utf-8")
     req = urllib.request.Request(
         DISCORD_WEBHOOK_URL, data=data,
